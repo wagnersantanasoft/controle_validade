@@ -3,20 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Leitor de Código de Barras</title>
+    <title>Teste Leitura de Código de Barras</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <h1>Leitor de Código de Barras</h1>
+    <h1>Lista de Produtos</h1>
+    <button id="start-btn">Ler código de barras com a câmera</button>
     <div id="camera-container">
         <video id="video" autoplay></video>
-        <canvas id="canvas" style="display:none;"></canvas>
     </div>
-    <button id="start-btn">Iniciar Leitura</button>
     <div id="result">
         <strong>Código lido:</strong> <span id="barcode"></span>
     </div>
-    <!-- Biblioteca QuaggaJS via CDN -->
+    <ul id="product-list"></ul>
+    <!-- Biblioteca QuaggaJS CDN -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js"></script>
     <script src="script.js"></script>
 </body>
