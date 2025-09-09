@@ -1,4 +1,4 @@
-// --- Autenticação simples (demo, para evoluir depois) ---
+// ---------- Autenticação simples ----------
 const users = [
     { user: "admin", pass: "1234" }
 ];
@@ -18,7 +18,6 @@ document.getElementById("loginBtn").onclick = function() {
         showSection("dashboardSection");
         document.getElementById("loginMsg").textContent = "";
         atualizarTabela();
-        atualizarFiltros();
     } else {
         document.getElementById("loginMsg").textContent = "Usuário ou senha inválidos.";
     }
@@ -29,7 +28,7 @@ document.getElementById("logoutBtn").onclick = function() {
     document.getElementById("loginPass").value = "";
 };
 
-// --- Produto e LocalStorage ---
+// ---------- Produtos (LocalStorage) ----------
 function getProdutos() {
     return JSON.parse(localStorage.getItem("produtos") || "[]");
 }
@@ -52,18 +51,21 @@ function atualizarProduto(ean, validade, novo) {
     setProdutos(arr);
 }
 
-// --- Atualização de filtros de grupo/marca ---
-function atualizarFiltros() {
-    const arr = getProdutos();
-    const grupos = [...new Set(arr.map(p=>p.grupo).filter(Boolean))];
-    const marcas = [...new Set(arr.map(p=>p.marca).filter(Boolean))];
-    const grupoSel = document.getElementById("grupoFiltro");
-    const marcaSel = document.getElementById("marcaFiltro");
-    grupoSel.innerHTML = '<option value="">Todos</option>' + grupos.map(g=>`<option>${g}</option>`).join("");
-    marcaSel.innerHTML = '<option value="">Todas</option>' + marcas.map(m=>`<option>${m}</option>`).join("");
+// ---------- Produtos de TESTE ----------
+function seedProdutosTeste() {
+    if(getProdutos().length === 0) {
+        setProdutos([
+            {ean:"7891234567890",nome:"Leite Integral",grupo:"Laticínios",marca:"BoaVida",validade:"2025-09-15",qtd:10},
+            {ean:"7899876543210",nome:"Iogurte Natural",grupo:"Laticínios",marca:"BoaVida",validade:"2025-09-11",qtd:5},
+            {ean:"7891112223334",nome:"Pão de Forma",grupo:"Padaria",marca:"TrigoGold",validade:"2025-09-05",qtd:2},
+            {ean:"7895556667778",nome:"Presunto Fatiado",grupo:"Frios",marca:"PorcoBom",validade:"2025-09-10",qtd:8},
+            {ean:"7894445556667",nome:"Refrigerante Cola",grupo:"Bebidas",marca:"RefriX",validade:"2026-02-01",qtd:24}
+        ]);
+    }
 }
+seedProdutosTeste();
 
-// --- Tabela ---
+// ---------- Tabela ----------
 function atualizarTabela(filtro={}) {
     const arr = getProdutos();
     let lista = arr.slice();
@@ -77,8 +79,6 @@ function atualizarTabela(filtro={}) {
             p.marca.toLowerCase().includes(b)
         );
     }
-    if(filtro.grupo) lista = lista.filter(p=>p.grupo===filtro.grupo);
-    if(filtro.marca) lista = lista.filter(p=>p.marca===filtro.marca);
     if(filtro.vencido) {
         const hoje = new Date().toISOString().slice(0,10);
         lista = lista.filter(p=>p.validade < hoje);
@@ -110,7 +110,7 @@ function atualizarTabela(filtro={}) {
             <td>${p.validade}</td>
             <td>${p.qtd}</td>
             <td>
-                <button onclick="removerProduto('${p.ean}','${p.validade}');atualizarTabela();atualizarFiltros();" style="background:#ff4136;width:auto;padding:4px 8px;font-size:0.9em;">Remover</button>
+                <button onclick="removerProduto('${p.ean}','${p.validade}');atualizarTabela();" style="background:#ff4136;width:auto;padding:4px 8px;font-size:0.9em;">Remover</button>
                 <button onclick="editarProduto('${p.ean}','${p.validade}')" style="background:#faad1d;width:auto;padding:4px 8px;font-size:0.9em;margin-left:6px;">Editar</button>
             </td>
         `;
@@ -119,33 +119,15 @@ function atualizarTabela(filtro={}) {
     document.getElementById("dashboardMsg").textContent = lista.length===0 ? "Nenhum produto encontrado." : "";
 }
 
-// --- Filtros ---
+// ---------- Filtros ----------
 document.getElementById("listarBtn").onclick = ()=>{
     document.getElementById("buscaFiltro").value = "";
-    document.getElementById("grupoFiltro").value = "";
-    document.getElementById("marcaFiltro").value = "";
     document.getElementById("diasFiltro").value = 7;
     atualizarTabela();
 };
 document.getElementById("buscaFiltro").oninput = ()=>{
     atualizarTabela({
-        busca: document.getElementById("buscaFiltro").value,
-        grupo: document.getElementById("grupoFiltro").value,
-        marca: document.getElementById("marcaFiltro").value
-    });
-};
-document.getElementById("grupoFiltro").onchange = ()=>{
-    atualizarTabela({
-        busca: document.getElementById("buscaFiltro").value,
-        grupo: document.getElementById("grupoFiltro").value,
-        marca: document.getElementById("marcaFiltro").value
-    });
-};
-document.getElementById("marcaFiltro").onchange = ()=>{
-    atualizarTabela({
-        busca: document.getElementById("buscaFiltro").value,
-        grupo: document.getElementById("grupoFiltro").value,
-        marca: document.getElementById("marcaFiltro").value
+        busca: document.getElementById("buscaFiltro").value
     });
 };
 document.getElementById("filtrarProximosBtn").onclick = ()=>{
@@ -158,7 +140,7 @@ document.getElementById("filtrarVencidosBtn").onclick = ()=>{
     atualizarTabela({vencido:true});
 };
 
-// --- Cadastro Produto ---
+// ---------- Cadastro Produto ----------
 document.getElementById("addProdutoBtn").onclick = ()=>{
     showSection("cadastroSection");
     document.getElementById("produtoEAN").value = "";
@@ -177,12 +159,13 @@ document.getElementById("cancelarCadastroBtn").onclick = ()=>{
     stopCamera();
 };
 
-// --- Barcode Scanner (mantendo seu código funcional) ---
+// ---------- Barcode Scanner (EXATAMENTE o seu código) ----------
 const video = document.getElementById('video');
-const iniciarBtn = document.getElementById('iniciarLeituraBtn');
-const pararBtn = document.getElementById('pararLeituraBtn');
+const iniciarBtn = document.getElementById('iniciar');
+const pararBtn = document.getElementById('parar');
 const codigoDiv = document.getElementById('codigo');
-let scanning = false, stream = null;
+let scanning = false;
+let stream = null;
 
 function getConstraints() {
     if (/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
@@ -204,10 +187,12 @@ iniciarBtn.onclick = async function() {
     await startCamera();
     startScanner();
 };
+
 pararBtn.onclick = function() {
     stopScanner();
     stopCamera();
 };
+
 async function startCamera() {
     try {
         stream = await navigator.mediaDevices.getUserMedia(getConstraints());
@@ -219,6 +204,7 @@ async function startCamera() {
         pararBtn.style.display = 'none';
     }
 }
+
 function stopCamera() {
     if (stream) {
         stream.getTracks().forEach(track => track.stop());
@@ -226,6 +212,7 @@ function stopCamera() {
     }
     video.srcObject = null;
 }
+
 function startScanner() {
     scanning = true;
     if (window.Quagga) {
@@ -254,9 +241,11 @@ function startScanner() {
             }
             Quagga.start();
         });
+
         Quagga.onDetected(onDetected);
     }
 }
+
 function onDetected(result) {
     if (scanning && result && result.codeResult && result.codeResult.code) {
         codigoDiv.textContent = "Código lido: " + result.codeResult.code;
@@ -265,6 +254,7 @@ function onDetected(result) {
         stopCamera();
     }
 }
+
 function stopScanner() {
     scanning = false;
     try { Quagga.stop(); } catch (e) {}
@@ -273,7 +263,7 @@ function stopScanner() {
     if (window.Quagga) Quagga.offDetected(onDetected);
 }
 
-// --- Salvar Produto ---
+// ---------- Salvar Produto ----------
 document.getElementById("salvarProdutoBtn").onclick = function() {
     const ean = document.getElementById("produtoEAN").value.trim();
     const nome = document.getElementById("produtoNome").value.trim();
@@ -290,13 +280,12 @@ document.getElementById("salvarProdutoBtn").onclick = function() {
     setTimeout(()=>{
         showSection("dashboardSection");
         atualizarTabela();
-        atualizarFiltros();
         stopScanner();
         stopCamera();
     }, 700);
 };
 
-// --- Editar Produto ---
+// ---------- Editar Produto ----------
 window.editarProduto = function(ean, validade) {
     const arr = getProdutos();
     const prod = arr.find(p=>p.ean===ean && p.validade===validade);
@@ -326,12 +315,11 @@ window.editarProduto = function(ean, validade) {
         setTimeout(()=>{
             showSection("dashboardSection");
             atualizarTabela();
-            atualizarFiltros();
             stopScanner();
             stopCamera();
         }, 700);
     };
 };
 
-// --- Inicialização ---
+// ---------- Inicialização ----------
 showSection("loginSection");

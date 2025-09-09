@@ -35,10 +35,6 @@
         <div class="filters">
             <label>Filtro</label>
             <input type="text" id="buscaFiltro" placeholder="EAN, Nome, Grupo, Marca">
-            <label>Filtrar por grupo:</label>
-            <select id="grupoFiltro"><option value="">Todos</option></select>
-            <label>Filtrar por marca:</label>
-            <select id="marcaFiltro"><option value="">Todas</option></select>
             <label>Dias próximos do vencimento:</label>
             <input type="number" id="diasFiltro" value="7" min="1">
             <div class="actions">
@@ -72,8 +68,8 @@
         <div id="barcodeScanner">
             <video id="video" autoplay playsinline></video>
             <div id="codigo"></div>
-            <button id="iniciarLeituraBtn">Iniciar Leitura</button>
-            <button id="pararLeituraBtn" class="parar-btn">Parar</button>
+            <button id="iniciar">Iniciar Leitura</button>
+            <button id="parar" class="parar-btn">Parar</button>
         </div>
         <label>EAN/Código</label>
         <input type="text" id="produtoEAN" readonly>
