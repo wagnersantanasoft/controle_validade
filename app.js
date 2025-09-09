@@ -190,9 +190,8 @@ document.getElementById("cancelarCadastroBtn").onclick = ()=>{
     stopScanner();
 };
 
-// ---------- Barcode Scanner (ZXing-js) ----------
+// ---------- Barcode Scanner (ZXing-js corrigido) ----------
 let codeReader = null;
-let scannerStream = null;
 
 const video = document.getElementById('video');
 const iniciarBtn = document.getElementById('iniciarLeituraBtn');
@@ -207,8 +206,8 @@ iniciarBtn.onclick = async function() {
     cameraMsg.textContent = '';
     stopScanner();
     try {
-        codeReader = new ZXingBrowser.BrowserMultiFormatReader();
-        const videoInputDevices = await ZXingBrowser.BrowserCodeReader.listVideoInputDevices();
+        codeReader = new ZXing.BrowserMultiFormatReader();
+        const videoInputDevices = await ZXing.BrowserMultiFormatReader.listVideoInputDevices();
         let deviceId = null;
         // Tenta pegar câmera traseira
         if (videoInputDevices.length > 1) {
@@ -216,13 +215,13 @@ iniciarBtn.onclick = async function() {
         } else if (videoInputDevices.length > 0) {
             deviceId = videoInputDevices[0].deviceId;
         }
-        codeReader.decodeFromVideoDevice(deviceId, video, (result, err) => {
+        await codeReader.decodeFromVideoDevice(deviceId, video, (result, err) => {
             if (result) {
                 codigoDiv.textContent = "Código lido: " + result.text;
                 document.getElementById("produtoEAN").value = result.text;
                 stopScanner();
             }
-            if (err && !(err instanceof ZXingBrowser.NotFoundException)) {
+            if (err && !(err instanceof ZXing.NotFoundException)) {
                 cameraMsg.textContent = "Erro ao ler código: " + err;
             }
         });
