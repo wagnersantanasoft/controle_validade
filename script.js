@@ -1,58 +1,73 @@
 const startBtn = document.getElementById('start-btn');
 const barcodeSpan = document.getElementById('barcode');
-const productInfoDiv = document.getElementById('product-info');
-const notFoundDiv = document.getElementById('not-found');
+const cameraContainer = document.getElementById('camera-container');
+const productList = document.getElementById('product-list');
 
-// Campos de produto
-const prodCodigo = document.getElementById('prod-codigo');
-const prodEan = document.getElementById('prod-ean');
-const prodNome = document.getElementById('prod-nome');
-const prodValidade = document.getElementById('prod-validade');
-const prodPreco = document.getElementById('prod-preco');
-
-// Lista de produtos aleatórios para exemplo
+// Lista fixa de produtos para teste
 const produtos = [
     {
-        codigo: "1001",
-        ean: "7891234567890",
-        nome: "Sabonete Lux",
+        codigo: "001",
+        codBarras: "7891196500817",
+        nome: "Leite Integral Parmalat",
         validade: "2025-12-01",
+        preco: 5.49
+    },
+    {
+        codigo: "002",
+        codBarras: "7891234567890",
+        nome: "Biscoito Maria",
+        validade: "2025-10-20",
         preco: 2.99
     },
     {
-        codigo: "1002",
-        ean: "7899876543210",
-        nome: "Shampoo Dove",
+        codigo: "003",
+        codBarras: "7899876543210",
+        nome: "Café Pilão 500g",
         validade: "2026-06-15",
-        preco: 14.90
+        preco: 16.90
     },
     {
-        codigo: "1003",
-        ean: "7891112223334",
-        nome: "Creme Dental Colgate",
-        validade: "2027-03-10",
-        preco: 5.75
-    },
-    {
-        codigo: "1004",
-        ean: "7894445556667",
-        nome: "Desodorante Rexona",
+        codigo: "004",
+        codBarras: "7891112223334",
+        nome: "Refrigerante Coca-Cola 2L",
         validade: "2025-09-30",
-        preco: 12.50
+        preco: 8.50
     },
     {
-        codigo: "1005",
-        ean: "7897778889991",
-        nome: "Sabão em Pó OMO",
+        codigo: "005",
+        codBarras: "7897778889991",
+        nome: "Arroz Tio João 5kg",
         validade: "2026-05-20",
-        preco: 22.00
+        preco: 25.00
     }
 ];
 
+// Renderiza a lista de produtos
+function renderProductList(highlightCode = null) {
+    productList.innerHTML = '';
+    produtos.forEach(prod => {
+        const li = document.createElement('li');
+        li.innerHTML = `
+            <strong>${prod.nome}</strong><br>
+            Código: ${prod.codigo}<br>
+            Código de barras: ${prod.codBarras}<br>
+            Validade: ${prod.validade}<br>
+            Preço: R$ ${prod.preco.toFixed(2)}
+        `;
+        if (prod.codBarras === highlightCode) {
+            li.classList.add('highlight');
+        }
+        productList.appendChild(li);
+    });
+}
+
+// Inicializa lista no carregamento
+renderProductList();
+
 startBtn.addEventListener('click', () => {
     barcodeSpan.textContent = '';
-    productInfoDiv.classList.add('hidden');
-    notFoundDiv.classList.add('hidden');
+    cameraContainer.style.display = 'block';
+    renderProductList(); // Remove destaque anterior
     startBarcodeScanner();
 });
 
@@ -61,7 +76,7 @@ function startBarcodeScanner() {
         inputStream: {
             name: "Live",
             type: "LiveStream",
-            target: document.querySelector('#camera-container'),
+            target: cameraContainer,
             constraints: {
                 facingMode: "environment"
             }
@@ -78,6 +93,7 @@ function startBarcodeScanner() {
     }, function (err) {
         if (err) {
             alert("Erro ao acessar a câmera: " + err);
+            cameraContainer.style.display = 'none';
             return;
         }
         Quagga.start();
@@ -88,23 +104,17 @@ function startBarcodeScanner() {
 
 function onBarcodeDetected(data) {
     Quagga.stop();
+    cameraContainer.style.display = 'none';
     let code = data.codeResult.code;
     barcodeSpan.textContent = code;
 
-    // Procura produto pelo código ou EAN
-    let produto = produtos.find(p => p.codigo === code || p.ean === code);
-
-    if (produto) {
-        prodCodigo.textContent = produto.codigo;
-        prodEan.textContent = produto.ean;
-        prodNome.textContent = produto.nome;
-        prodValidade.textContent = produto.validade;
-        prodPreco.textContent = produto.preco.toFixed(2);
-        productInfoDiv.classList.remove('hidden');
-        notFoundDiv.classList.add('hidden');
+    // Destaca o produto na lista pelo código de barras
+    const encontrado = produtos.find(p => p.codBarras === code);
+    if (encontrado) {
+        renderProductList(code);
     } else {
-        productInfoDiv.classList.add('hidden');
-        notFoundDiv.classList.remove('hidden');
+        renderProductList();
+        alert('Produto não localizado!');
     }
 
     Quagga.offDetected(onBarcodeDetected);
