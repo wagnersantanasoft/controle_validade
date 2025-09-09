@@ -110,8 +110,8 @@ function atualizarTabela(filtro={}) {
             <td>${p.validade}</td>
             <td>${p.qtd}</td>
             <td>
-                <button onclick="removerProduto('${p.ean}','${p.validade}');atualizarTabela();" style="background:#ff4136;width:auto;padding:4px 8px;font-size:0.9em;">Remover</button>
-                <button onclick="editarProduto('${p.ean}','${p.validade}')" style="background:#faad1d;width:auto;padding:4px 8px;font-size:0.9em;margin-left:6px;">Editar</button>
+                <button onclick="removerProduto('${p.ean}','${p.validade}');atualizarTabela();" style="background:#ff4136;width:auto;padding:4px 8px;font-size:0.95em;">Remover</button>
+                <button onclick="editarProduto('${p.ean}','${p.validade}')" style="background:#faad1d;width:auto;padding:4px 8px;font-size:0.95em;margin-left:6px;">Editar</button>
             </td>
         `;
         tbody.appendChild(tr);
@@ -150,6 +150,7 @@ document.getElementById("addProdutoBtn").onclick = ()=>{
     document.getElementById("produtoValidade").value = "";
     document.getElementById("produtoQtd").value = 1;
     document.getElementById("cadastroMsg").textContent = "";
+    document.getElementById("cameraMsg").textContent = "";
     stopScanner();
     stopCamera();
 };
@@ -159,24 +160,17 @@ document.getElementById("cancelarCadastroBtn").onclick = ()=>{
     stopCamera();
 };
 
-// ---------- Barcode Scanner (EXATAMENTE o seu código) ----------
+// ---------- Barcode Scanner (Robust version) ----------
 const video = document.getElementById('video');
 const iniciarBtn = document.getElementById('iniciar');
 const pararBtn = document.getElementById('parar');
 const codigoDiv = document.getElementById('codigo');
+const cameraMsg = document.getElementById('cameraMsg');
 let scanning = false;
 let stream = null;
 
 function getConstraints() {
-    if (/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
-        return {
-            video: {
-                facingMode: { exact: "environment" },
-                width: { ideal: 640 },
-                height: { ideal: 480 }
-            }
-        };
-    }
+    // Try environment, fallback to user
     return { video: { facingMode: "environment" } };
 }
 
@@ -184,24 +178,47 @@ iniciarBtn.onclick = async function() {
     iniciarBtn.disabled = true;
     pararBtn.style.display = 'inline-block';
     codigoDiv.textContent = '';
-    await startCamera();
+    cameraMsg.textContent = '';
+    let triedUser = false;
+    try {
+        await startCamera(getConstraints());
+    } catch (err) {
+        // Try fallback to 'user' camera
+        if (!triedUser) {
+            triedUser = true;
+            try {
+                await startCamera({ video: { facingMode: "user" } });
+                cameraMsg.textContent = "Câmera traseira não disponível, usando câmera frontal.";
+            } catch (err2) {
+                cameraMsg.textContent = "Erro ao acessar a câmera: " + err2;
+                iniciarBtn.disabled = false;
+                pararBtn.style.display = 'none';
+                return;
+            }
+        } else {
+            cameraMsg.textContent = "Erro ao acessar a câmera: " + err;
+            iniciarBtn.disabled = false;
+            pararBtn.style.display = 'none';
+            return;
+        }
+    }
     startScanner();
 };
 
 pararBtn.onclick = function() {
     stopScanner();
     stopCamera();
+    cameraMsg.textContent = '';
 };
 
-async function startCamera() {
+async function startCamera(constraints) {
+    stopCamera();
     try {
-        stream = await navigator.mediaDevices.getUserMedia(getConstraints());
+        stream = await navigator.mediaDevices.getUserMedia(constraints);
         video.srcObject = stream;
         await video.play();
     } catch (err) {
-        alert("Erro ao acessar a câmera: " + err);
-        iniciarBtn.disabled = false;
-        pararBtn.style.display = 'none';
+        throw err;
     }
 }
 
@@ -221,7 +238,7 @@ function startScanner() {
                 name: "Live",
                 type: "LiveStream",
                 target: video,
-                constraints: getConstraints().video
+                constraints: { facingMode: "environment" }
             },
             decoder: {
                 readers: [
@@ -234,7 +251,7 @@ function startScanner() {
             locate: true
         }, function(err) {
             if (err) {
-                alert("Erro ao iniciar o Quagga: " + err);
+                cameraMsg.textContent = "Erro ao iniciar o Quagga: " + err;
                 stopScanner();
                 stopCamera();
                 return;
@@ -298,6 +315,7 @@ window.editarProduto = function(ean, validade) {
     document.getElementById("produtoValidade").value = prod.validade;
     document.getElementById("produtoQtd").value = prod.qtd;
     document.getElementById("cadastroMsg").textContent = "";
+    document.getElementById("cameraMsg").textContent = "";
     stopScanner();
     stopCamera();
     document.getElementById("salvarProdutoBtn").onclick = function() {
