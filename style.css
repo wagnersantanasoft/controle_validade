@@ -47,3 +47,27 @@ h1 {
     font-size: 18px;
     color: #333;
 }
+
+#product-info, #not-found {
+    margin: 20px auto;
+    padding: 15px 30px;
+    background: #fff;
+    border-radius: 8px;
+    max-width: 400px;
+    box-shadow: 0 0 8px #ccc;
+}
+
+#product-info ul {
+    list-style: none;
+    padding: 0;
+    text-align: left;
+}
+
+#product-info li {
+    margin-bottom: 10px;
+    font-size: 18px;
+}
+
+.hidden {
+    display: none;
+}
