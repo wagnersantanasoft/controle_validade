@@ -1,0 +1,101 @@
+body {
+    background: #e6e6e6;
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+}
+.container {
+    max-width: 500px;
+    margin: 32px auto;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+    padding: 24px;
+    min-height: 100vh;
+}
+.hidden { display: none !important; }
+.logo { max-width:180px; display:block; margin:0 auto 20px; }
+.logo-small { max-width:120px; display:inline-block; vertical-align:middle; }
+.topbar {
+    text-align:center;
+    margin-bottom:24px;
+}
+label {
+    display: block;
+    margin-top: 12px;
+    font-weight: bold;
+}
+input, select {
+    width: 100%;
+    padding: 8px;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+    margin-top: 6px;
+    margin-bottom: 10px;
+    box-sizing: border-box;
+}
+button {
+    background: #0074d9;
+    color: #fff;
+    border: none;
+    padding: 12px 0;
+    width: 100%;
+    border-radius: 6px;
+    font-size: 1em;
+    font-weight: bold;
+    cursor: pointer;
+    margin-bottom: 10px;
+    transition: background .2s;
+}
+button:disabled { background: #aaa; }
+.logout-btn {background:#ff4136;width:auto;padding:8px 24px;}
+.cancelar-btn {background:#aaa;}
+.parar-btn {background:#ff4136;display:none;}
+.proximo-btn {background:#faad1d;}
+.vencido-btn {background:#c00;}
+.actions { display: flex; gap: 12px; }
+.filters { margin-top: 12px;}
+.table-wrap { overflow-x:auto; }
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 16px;
+    font-size: 0.96em;
+}
+th, td {
+    padding: 8px;
+    border-bottom: 1px solid #eee;
+    text-align: left;
+}
+tr.vencido td {
+    background: #ffebe8;
+    color: #c00;
+}
+tr.proximo td {
+    background: #fff3c1;
+    color: #b38b00;
+}
+#video {
+    width: 100%;
+    max-width: 400px;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    background: #222;
+}
+#codigo {
+    font-size: 1.1em;
+    color: #0074d9;
+    padding: 8px;
+    word-break: break-all;
+}
+.msg {
+    color:#d00;
+    margin-top:10px;
+    min-height:20px;
+}
+@media (max-width: 600px) {
+    .container {
+        max-width: 98vw;
+        padding: 8vw 2vw;
+    }
+}
