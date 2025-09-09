@@ -105,6 +105,9 @@ function atualizarTabela(filtro={}) {
             return v >= hoje && (v-hoje)/(1000*60*60*24) <= dias;
         });
     }
+    if(filtro.eanBusca) {
+        lista = lista.filter(p=>p.ean === filtro.eanBusca);
+    }
     // Tabela
     const tbody = document.querySelector("#produtosTable tbody");
     tbody.innerHTML = "";
@@ -172,8 +175,75 @@ document.getElementById("filtrarVencidosBtn").onclick = ()=>{
     atualizarTabela({vencido:true});
 };
 
-// ---------- Cadastro Produto ----------
-document.getElementById("addProdutoBtn").onclick = ()=>{
+// ---------- Busca por código de barras (foto + input manual) ----------
+const buscarCodigoBtn = document.getElementById('buscarCodigoBtn');
+const scannerBusca = document.getElementById('scannerBusca');
+const videoBusca = document.getElementById('videoBusca');
+const canvasBusca = document.getElementById('canvasBusca');
+const capturarBuscaBtn = document.getElementById('capturarBuscaBtn');
+const pararBuscaBtn = document.getElementById('pararBuscaBtn');
+const fotoBuscaMsg = document.getElementById('fotoBuscaMsg');
+const codigoBuscaInput = document.getElementById('codigoBuscaInput');
+const buscarPorCodigoFinalBtn = document.getElementById('buscarPorCodigoFinalBtn');
+let streamBusca = null;
+
+buscarCodigoBtn.onclick = async function() {
+    scannerBusca.classList.remove('hidden');
+    fotoBuscaMsg.textContent = "";
+    codigoBuscaInput.value = "";
+    await startCameraBusca();
+};
+capturarBuscaBtn.onclick = function() {
+    if (!streamBusca) return;
+    canvasBusca.width = videoBusca.videoWidth;
+    canvasBusca.height = videoBusca.videoHeight;
+    canvasBusca.getContext('2d').drawImage(videoBusca, 0, 0, canvasBusca.width, canvasBusca.height);
+    canvasBusca.style.display = 'block';
+    fotoBuscaMsg.textContent = "Foto capturada! Digite o código manualmente.";
+};
+pararBuscaBtn.onclick = function() {
+    stopCameraBusca();
+    scannerBusca.classList.add('hidden');
+};
+buscarPorCodigoFinalBtn.onclick = function() {
+    const ean = codigoBuscaInput.value.trim();
+    if (!ean) {
+        fotoBuscaMsg.textContent = "Digite o código!";
+        return;
+    }
+    stopCameraBusca();
+    scannerBusca.classList.add('hidden');
+    atualizarTabela({eanBusca: ean});
+};
+async function startCameraBusca() {
+    stopCameraBusca();
+    try {
+        streamBusca = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+        videoBusca.srcObject = streamBusca;
+        await videoBusca.play();
+        canvasBusca.style.display = 'none';
+    } catch (err) {
+        fotoBuscaMsg.textContent = "Erro ao acessar câmera: " + err;
+    }
+}
+function stopCameraBusca() {
+    if (streamBusca) {
+        streamBusca.getTracks().forEach(track => track.stop());
+        streamBusca = null;
+    }
+    videoBusca.srcObject = null;
+    canvasBusca.style.display = 'none';
+}
+
+// ---------- Cadastro Produto (foto + input manual) ----------
+const video = document.getElementById('video');
+const canvas = document.getElementById('canvas');
+const capturarBtn = document.getElementById('capturarBtn');
+const pararLeituraBtn = document.getElementById('pararLeituraBtn');
+const cameraMsg = document.getElementById('cameraMsg');
+let stream = null;
+
+document.getElementById("addProdutoBtn").onclick = async ()=>{
     showSection("cadastroSection");
     document.getElementById("produtoEAN").value = "";
     document.getElementById("produtoNome").value = "";
@@ -182,69 +252,43 @@ document.getElementById("addProdutoBtn").onclick = ()=>{
     document.getElementById("produtoValidade").value = "";
     document.getElementById("produtoQtd").value = 1;
     document.getElementById("cadastroMsg").textContent = "";
-    document.getElementById("cameraMsg").textContent = "";
-    stopScanner();
+    cameraMsg.textContent = "";
+    await startCameraCadastro();
 };
-document.getElementById("cancelarCadastroBtn").onclick = ()=>{
-    showSection("dashboardSection");
-    stopScanner();
+capturarBtn.onclick = function() {
+    if (!stream) return;
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
+    canvas.style.display = 'block';
+    cameraMsg.textContent = "Foto capturada! Digite o código manualmente.";
 };
-
-// ---------- Barcode Scanner (ZXing-js corrigido) ----------
-let codeReader = null;
-
-const video = document.getElementById('video');
-const iniciarBtn = document.getElementById('iniciarLeituraBtn');
-const pararBtn = document.getElementById('pararLeituraBtn');
-const codigoDiv = document.getElementById('codigo');
-const cameraMsg = document.getElementById('cameraMsg');
-
-iniciarBtn.onclick = async function() {
-    iniciarBtn.disabled = true;
-    pararBtn.style.display = 'inline-block';
-    codigoDiv.textContent = '';
-    cameraMsg.textContent = '';
-    stopScanner();
+pararLeituraBtn.onclick = function() {
+    stopCameraCadastro();
+};
+async function startCameraCadastro() {
+    stopCameraCadastro();
     try {
-        codeReader = new ZXing.BrowserMultiFormatReader();
-        const videoInputDevices = await ZXing.BrowserMultiFormatReader.listVideoInputDevices();
-        let deviceId = null;
-        // Tenta pegar câmera traseira
-        if (videoInputDevices.length > 1) {
-            deviceId = videoInputDevices[1].deviceId;
-        } else if (videoInputDevices.length > 0) {
-            deviceId = videoInputDevices[0].deviceId;
-        }
-        await codeReader.decodeFromVideoDevice(deviceId, video, (result, err) => {
-            if (result) {
-                codigoDiv.textContent = "Código lido: " + result.text;
-                document.getElementById("produtoEAN").value = result.text;
-                stopScanner();
-            }
-            if (err && !(err instanceof ZXing.NotFoundException)) {
-                cameraMsg.textContent = "Erro ao ler código: " + err;
-            }
-        });
+        stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+        video.srcObject = stream;
+        await video.play();
+        canvas.style.display = 'none';
     } catch (err) {
         cameraMsg.textContent = "Erro ao acessar câmera: " + err;
-        iniciarBtn.disabled = false;
-        pararBtn.style.display = 'none';
     }
-};
-
-pararBtn.onclick = function() {
-    stopScanner();
-};
-
-function stopScanner() {
-    if (codeReader) {
-        codeReader.reset();
-        codeReader = null;
+}
+function stopCameraCadastro() {
+    if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+        stream = null;
     }
     video.srcObject = null;
-    iniciarBtn.disabled = false;
-    pararBtn.style.display = 'none';
+    canvas.style.display = 'none';
 }
+document.getElementById("cancelarCadastroBtn").onclick = ()=>{
+    showSection("dashboardSection");
+    stopCameraCadastro();
+};
 
 // ---------- Salvar Produto ----------
 document.getElementById("salvarProdutoBtn").onclick = function() {
@@ -264,7 +308,7 @@ document.getElementById("salvarProdutoBtn").onclick = function() {
         showSection("dashboardSection");
         atualizarTabela();
         atualizarFiltros();
-        stopScanner();
+        stopCameraCadastro();
     }, 700);
 };
 
@@ -281,27 +325,9 @@ window.editarProduto = function(ean, validade) {
     document.getElementById("produtoValidade").value = prod.validade;
     document.getElementById("produtoQtd").value = prod.qtd;
     document.getElementById("cadastroMsg").textContent = "";
-    document.getElementById("cameraMsg").textContent = "";
-    stopScanner();
-    document.getElementById("salvarProdutoBtn").onclick = function() {
-        const nome = document.getElementById("produtoNome").value.trim();
-        const grupo = document.getElementById("produtoGrupo").value.trim();
-        const marca = document.getElementById("produtoMarca").value.trim();
-        const novaValidade = document.getElementById("produtoValidade").value;
-        const qtd = parseInt(document.getElementById("produtoQtd").value) || 1;
-        if(!ean || !nome || !grupo || !marca || !novaValidade || !qtd) {
-            document.getElementById("cadastroMsg").textContent = "Preencha todos os campos!";
-            return;
-        }
-        atualizarProduto(ean, validade, {ean, nome, grupo, marca, validade: novaValidade, qtd});
-        document.getElementById("cadastroMsg").textContent = "Produto atualizado!";
-        setTimeout(()=>{
-            showSection("dashboardSection");
-            atualizarTabela();
-            atualizarFiltros();
-            stopScanner();
-        }, 700);
-    };
+    cameraMsg.textContent = "";
+    startCameraCadastro();
+    canvas.style.display = 'none';
 };
 
 // ---------- Inicialização ----------

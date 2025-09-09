@@ -11,7 +11,7 @@
     <!-- Login Section -->
     <div id="loginSection">
         <img src="imagens/sanatanasoft_full_p.png" alt="" class="logo">
-        <h2>Login 1.1</h2>
+        <h2>Login</h2>
         <label>Usuário</label>
         <input type="text" id="loginUser" autocomplete="username" value="admin">
         <label>Senha</label>
@@ -46,7 +46,19 @@
                 <button id="filtrarVencidosBtn" class="vencido-btn">Vencidos</button>
             </div>
         </div>
-
+        <div class="actions" style="margin-bottom:12px;">
+            <button id="buscarCodigoBtn" class="buscar-codigo-btn">Buscar por código de barras</button>
+        </div>
+        <div id="scannerBusca" class="hidden" style="margin-bottom:14px;">
+            <video id="videoBusca" autoplay playsinline></video>
+            <canvas id="canvasBusca" style="display:none;"></canvas>
+            <button id="capturarBuscaBtn">Capturar Foto</button>
+            <button id="pararBuscaBtn" class="parar-btn">Parar</button>
+            <div id="fotoBuscaMsg" class="msg"></div>
+            <label>Digite o código lido:</label>
+            <input type="text" id="codigoBuscaInput" maxlength="20">
+            <button id="buscarPorCodigoFinalBtn" class="buscar-codigo-btn">Buscar Produto</button>
+        </div>
         <div class="list-mobile">
             <table id="produtosTable">
                 <thead>
@@ -71,13 +83,13 @@
         <h3>Cadastrar Produto</h3>
         <div id="barcodeScanner">
             <video id="video" autoplay playsinline></video>
-            <div id="codigo"></div>
-            <button id="iniciarLeituraBtn">Iniciar Leitura</button>
+            <canvas id="canvas" style="display:none;"></canvas>
+            <button id="capturarBtn">Capturar Foto</button>
             <button id="pararLeituraBtn" class="parar-btn">Parar</button>
+            <div id="cameraMsg" class="msg"></div>
         </div>
-        <div id="cameraMsg" class="msg"></div>
         <label>EAN/Código</label>
-        <input type="text" id="produtoEAN" readonly>
+        <input type="text" id="produtoEAN" maxlength="20">
         <label>Nome</label>
         <input type="text" id="produtoNome">
         <label>Grupo</label>
@@ -93,8 +105,6 @@
         <div id="cadastroMsg" class="msg"></div>
     </div>
 </div>
-<!-- ZXing-js barcode scanner -->
-<script src="https://unpkg.com/@zxing/library@0.20.0/umd/index.min.js"></script>
 <script src="app.js"></script>
 </body>
 </html>
