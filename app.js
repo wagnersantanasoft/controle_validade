@@ -18,14 +18,15 @@ document.getElementById("loginBtn").onclick = function() {
         showSection("dashboardSection");
         document.getElementById("loginMsg").textContent = "";
         atualizarTabela();
+        atualizarFiltros();
     } else {
         document.getElementById("loginMsg").textContent = "Usuário ou senha inválidos.";
     }
 };
 document.getElementById("logoutBtn").onclick = function() {
     showSection("loginSection");
-    document.getElementById("loginUser").value = "";
-    document.getElementById("loginPass").value = "";
+    document.getElementById("loginUser").value = "admin";
+    document.getElementById("loginPass").value = "1234";
 };
 
 // ---------- Produtos (LocalStorage) ----------
@@ -65,6 +66,17 @@ function seedProdutosTeste() {
 }
 seedProdutosTeste();
 
+// ---------- Filtros grupo/marca preenchidos ----------
+function atualizarFiltros() {
+    const arr = getProdutos();
+    const grupos = [...new Set(arr.map(p=>p.grupo).filter(Boolean))];
+    const marcas = [...new Set(arr.map(p=>p.marca).filter(Boolean))];
+    const grupoSel = document.getElementById("grupoFiltro");
+    const marcaSel = document.getElementById("marcaFiltro");
+    grupoSel.innerHTML = '<option value="">Todos</option>' + grupos.map(g=>`<option>${g}</option>`).join("");
+    marcaSel.innerHTML = '<option value="">Todas</option>' + marcas.map(m=>`<option>${m}</option>`).join("");
+}
+
 // ---------- Tabela ----------
 function atualizarTabela(filtro={}) {
     const arr = getProdutos();
@@ -79,6 +91,8 @@ function atualizarTabela(filtro={}) {
             p.marca.toLowerCase().includes(b)
         );
     }
+    if(filtro.grupo) lista = lista.filter(p=>p.grupo===filtro.grupo);
+    if(filtro.marca) lista = lista.filter(p=>p.marca===filtro.marca);
     if(filtro.vencido) {
         const hoje = new Date().toISOString().slice(0,10);
         lista = lista.filter(p=>p.validade < hoje);
@@ -110,7 +124,7 @@ function atualizarTabela(filtro={}) {
             <td>${p.validade}</td>
             <td>${p.qtd}</td>
             <td>
-                <button onclick="removerProduto('${p.ean}','${p.validade}');atualizarTabela();" style="background:#ff4136;width:auto;padding:4px 8px;font-size:0.95em;">Remover</button>
+                <button onclick="removerProduto('${p.ean}','${p.validade}');atualizarTabela();atualizarFiltros();" style="background:#ff4136;width:auto;padding:4px 8px;font-size:0.95em;">Remover</button>
                 <button onclick="editarProduto('${p.ean}','${p.validade}')" style="background:#faad1d;width:auto;padding:4px 8px;font-size:0.95em;margin-left:6px;">Editar</button>
             </td>
         `;
@@ -122,12 +136,30 @@ function atualizarTabela(filtro={}) {
 // ---------- Filtros ----------
 document.getElementById("listarBtn").onclick = ()=>{
     document.getElementById("buscaFiltro").value = "";
+    document.getElementById("grupoFiltro").value = "";
+    document.getElementById("marcaFiltro").value = "";
     document.getElementById("diasFiltro").value = 7;
     atualizarTabela();
 };
 document.getElementById("buscaFiltro").oninput = ()=>{
     atualizarTabela({
-        busca: document.getElementById("buscaFiltro").value
+        busca: document.getElementById("buscaFiltro").value,
+        grupo: document.getElementById("grupoFiltro").value,
+        marca: document.getElementById("marcaFiltro").value
+    });
+};
+document.getElementById("grupoFiltro").onchange = ()=>{
+    atualizarTabela({
+        busca: document.getElementById("buscaFiltro").value,
+        grupo: document.getElementById("grupoFiltro").value,
+        marca: document.getElementById("marcaFiltro").value
+    });
+};
+document.getElementById("marcaFiltro").onchange = ()=>{
+    atualizarTabela({
+        busca: document.getElementById("buscaFiltro").value,
+        grupo: document.getElementById("grupoFiltro").value,
+        marca: document.getElementById("marcaFiltro").value
     });
 };
 document.getElementById("filtrarProximosBtn").onclick = ()=>{
@@ -152,132 +184,67 @@ document.getElementById("addProdutoBtn").onclick = ()=>{
     document.getElementById("cadastroMsg").textContent = "";
     document.getElementById("cameraMsg").textContent = "";
     stopScanner();
-    stopCamera();
 };
 document.getElementById("cancelarCadastroBtn").onclick = ()=>{
     showSection("dashboardSection");
     stopScanner();
-    stopCamera();
 };
 
-// ---------- Barcode Scanner (Robust version) ----------
+// ---------- Barcode Scanner (ZXing-js) ----------
+let codeReader = null;
+let scannerStream = null;
+
 const video = document.getElementById('video');
-const iniciarBtn = document.getElementById('iniciar');
-const pararBtn = document.getElementById('parar');
+const iniciarBtn = document.getElementById('iniciarLeituraBtn');
+const pararBtn = document.getElementById('pararLeituraBtn');
 const codigoDiv = document.getElementById('codigo');
 const cameraMsg = document.getElementById('cameraMsg');
-let scanning = false;
-let stream = null;
-
-function getConstraints() {
-    // Try environment, fallback to user
-    return { video: { facingMode: "environment" } };
-}
 
 iniciarBtn.onclick = async function() {
     iniciarBtn.disabled = true;
     pararBtn.style.display = 'inline-block';
     codigoDiv.textContent = '';
     cameraMsg.textContent = '';
-    let triedUser = false;
+    stopScanner();
     try {
-        await startCamera(getConstraints());
-    } catch (err) {
-        // Try fallback to 'user' camera
-        if (!triedUser) {
-            triedUser = true;
-            try {
-                await startCamera({ video: { facingMode: "user" } });
-                cameraMsg.textContent = "Câmera traseira não disponível, usando câmera frontal.";
-            } catch (err2) {
-                cameraMsg.textContent = "Erro ao acessar a câmera: " + err2;
-                iniciarBtn.disabled = false;
-                pararBtn.style.display = 'none';
-                return;
-            }
-        } else {
-            cameraMsg.textContent = "Erro ao acessar a câmera: " + err;
-            iniciarBtn.disabled = false;
-            pararBtn.style.display = 'none';
-            return;
+        codeReader = new ZXingBrowser.BrowserMultiFormatReader();
+        const videoInputDevices = await ZXingBrowser.BrowserCodeReader.listVideoInputDevices();
+        let deviceId = null;
+        // Tenta pegar câmera traseira
+        if (videoInputDevices.length > 1) {
+            deviceId = videoInputDevices[1].deviceId;
+        } else if (videoInputDevices.length > 0) {
+            deviceId = videoInputDevices[0].deviceId;
         }
+        codeReader.decodeFromVideoDevice(deviceId, video, (result, err) => {
+            if (result) {
+                codigoDiv.textContent = "Código lido: " + result.text;
+                document.getElementById("produtoEAN").value = result.text;
+                stopScanner();
+            }
+            if (err && !(err instanceof ZXingBrowser.NotFoundException)) {
+                cameraMsg.textContent = "Erro ao ler código: " + err;
+            }
+        });
+    } catch (err) {
+        cameraMsg.textContent = "Erro ao acessar câmera: " + err;
+        iniciarBtn.disabled = false;
+        pararBtn.style.display = 'none';
     }
-    startScanner();
 };
 
 pararBtn.onclick = function() {
     stopScanner();
-    stopCamera();
-    cameraMsg.textContent = '';
 };
 
-async function startCamera(constraints) {
-    stopCamera();
-    try {
-        stream = await navigator.mediaDevices.getUserMedia(constraints);
-        video.srcObject = stream;
-        await video.play();
-    } catch (err) {
-        throw err;
-    }
-}
-
-function stopCamera() {
-    if (stream) {
-        stream.getTracks().forEach(track => track.stop());
-        stream = null;
+function stopScanner() {
+    if (codeReader) {
+        codeReader.reset();
+        codeReader = null;
     }
     video.srcObject = null;
-}
-
-function startScanner() {
-    scanning = true;
-    if (window.Quagga) {
-        Quagga.init({
-            inputStream: {
-                name: "Live",
-                type: "LiveStream",
-                target: video,
-                constraints: { facingMode: "environment" }
-            },
-            decoder: {
-                readers: [
-                    "ean_reader",
-                    "ean_8_reader",
-                    "upc_reader",
-                    "upc_e_reader"
-                ]
-            },
-            locate: true
-        }, function(err) {
-            if (err) {
-                cameraMsg.textContent = "Erro ao iniciar o Quagga: " + err;
-                stopScanner();
-                stopCamera();
-                return;
-            }
-            Quagga.start();
-        });
-
-        Quagga.onDetected(onDetected);
-    }
-}
-
-function onDetected(result) {
-    if (scanning && result && result.codeResult && result.codeResult.code) {
-        codigoDiv.textContent = "Código lido: " + result.codeResult.code;
-        document.getElementById("produtoEAN").value = result.codeResult.code;
-        stopScanner();
-        stopCamera();
-    }
-}
-
-function stopScanner() {
-    scanning = false;
-    try { Quagga.stop(); } catch (e) {}
     iniciarBtn.disabled = false;
     pararBtn.style.display = 'none';
-    if (window.Quagga) Quagga.offDetected(onDetected);
 }
 
 // ---------- Salvar Produto ----------
@@ -297,8 +264,8 @@ document.getElementById("salvarProdutoBtn").onclick = function() {
     setTimeout(()=>{
         showSection("dashboardSection");
         atualizarTabela();
+        atualizarFiltros();
         stopScanner();
-        stopCamera();
     }, 700);
 };
 
@@ -317,7 +284,6 @@ window.editarProduto = function(ean, validade) {
     document.getElementById("cadastroMsg").textContent = "";
     document.getElementById("cameraMsg").textContent = "";
     stopScanner();
-    stopCamera();
     document.getElementById("salvarProdutoBtn").onclick = function() {
         const nome = document.getElementById("produtoNome").value.trim();
         const grupo = document.getElementById("produtoGrupo").value.trim();
@@ -333,8 +299,8 @@ window.editarProduto = function(ean, validade) {
         setTimeout(()=>{
             showSection("dashboardSection");
             atualizarTabela();
+            atualizarFiltros();
             stopScanner();
-            stopCamera();
         }, 700);
     };
 };
